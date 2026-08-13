@@ -309,7 +309,7 @@ function rI(a,b){return Math.floor(Math.random()*(b-a+1))+a}
 function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function seedR(s){let x=s;return function(){x=(x*16807)%2147483647;return(x-1)/2147483646}}
 function getEffMind(){return gm+focusStacks+mindBonus+activeFoodMindBonus}
-function getLvMult(){return 1}
+function getLvMult(){if(gm<=4)return 0.8;return 1}
 function getBroadMargin(lv){if(lv>=11)return 4;if(lv>=8)return 2;return 0}
 function obf(v){if(!ch.IV)return v;return String(v).replace(/[0-9]/g,()=>'!@#$%&*?~<>|'[Math.floor(Math.random()*11)])}
 function setMsg(el,txt,type){el.textContent=txt;el.className='';if(type)el.classList.add(type);if(txt){clearTimeout(el._t);el._t=setTimeout(()=>{el.textContent='';el.className=''},6000)}}
@@ -347,11 +347,11 @@ function randomReq(depth){
   const lv=level;
   let base,k;
   if(lv<=1){base=2;k=0.5;}
-  else if(lv<=4){base=3;k=0.5;}
-  else if(lv<=7){base=5;k=0.4;}
-  else if(lv<=10){base=6;k=0.6;}
-  else if(lv<=12){base=7;k=0.6;}
-  else {base=8;k=0.7;}
+  else if(lv<=4){base=3;k=0.4;}
+  else if(lv<=7){base=3;k=0.4;}
+  else if(lv<=10){base=4;k=0.6;}
+  else if(lv<=12){base=5;k=0.6;}
+  else {base=5;k=0.7;}
   if(ch.III_exp) k*=1.5;
   return Math.floor(base + depth*k);
 }
@@ -528,6 +528,7 @@ let mindMaxDepth=(cl>=1&&cl<=6)?4:999;if(cl===4)mindMaxDepth=3;
 if(cl<=1){timePerMap=1}else{timePerMap=0}
 if(ch.I_exp&&timePerMap>0){timePerMap=Math.max(1,timePerMap-1)}
 if(cl<=0){mindTotal=4}else if(cl>=1&&cl<=6){mindTotal=4}else{mindTotal=4}
+if(cl===1||cl===4)mindTotal+=1;
 if(cl<=1){boostTotal=4}else if(cl===4){boostTotal=2}else if(cl>=5){boostTotal=4}else{boostTotal=0}
 if(cl<=1){inspireTotal=2}else if(cl===4){inspireTotal=3}else if(cl>=5){inspireTotal=4}else{inspireTotal=0}
 const alreadyUpgraded=new Set();
