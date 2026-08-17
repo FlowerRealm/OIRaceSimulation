@@ -1,0 +1,16 @@
+.attrs-panel {
+  width:100%;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+  padding:6px 10px;
+  background:#fafafa;
+  border-radius:14px;
+  border:1px solid #e0e0e0;
+  margin-top:6px;
+  align-items:center;
+  font-size:.78rem;
+  color:#888;
+  min-height:20px
+}

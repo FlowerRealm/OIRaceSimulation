@@ -22,8 +22,9 @@
   ],
   "main": "./src/index.js",
   "assets": {
-    // Only public/ is uploaded, so nothing outside it can ever be published.
-    "directory": "./public",
+    // Only the vite build output is uploaded, so nothing outside it can ever be
+    // published. Run `npm run build` before deploying; `npm run deploy` does both.
+    "directory": "./dist",
     // The Worker needs the binding to serve pages itself once it has decided a
     // request is not for the API.
     "binding": "ASSETS",

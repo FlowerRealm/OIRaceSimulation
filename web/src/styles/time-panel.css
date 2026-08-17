@@ -1,0 +1,78 @@
+.time-panel {
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:6px 12px;
+  background:#fafafa;
+  border-radius:30px;
+  border:1px solid #e0e0e0;
+  flex-wrap:wrap
+}
+
+.time-icon {
+  font-size:1.2rem
+}
+
+.time-label {
+  font-size:.8rem;
+  font-weight:700;
+  color:#444;
+  white-space:nowrap;
+  min-width:50px
+}
+
+.time-bars-group {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  flex:1;
+  min-width:80px
+}
+
+.time-bar-outer {
+  height:10px;
+  background:#e8e8e8;
+  border-radius:8px;
+  overflow:hidden;
+  position:relative;
+  width:100%
+}
+
+.stamina-bar,.time-bar-inner {
+  position:absolute;
+  top:0;
+  left:0;
+  height:100%;
+  border-radius:8px;
+  transition:width .5s
+}
+
+.time-bar-inner {
+  background:var(--tf)
+}
+
+.time-bar-inner.danger {
+  background:var(--td)
+}
+
+.stamina-bar {
+  background:var(--sf)
+}
+
+.time-number {
+  font-size:1.3rem;
+  font-weight:800;
+  color:#222;
+  min-width:40px;
+  text-align:center;
+  transition:color .3s,transform .15s
+}
+
+.time-number.tick {
+  animation:numTick .15s ease-out
+}
+
+.time-number.danger {
+  color:#111
+}

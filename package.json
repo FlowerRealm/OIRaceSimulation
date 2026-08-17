@@ -2,12 +2,32 @@
   "name": "oi-race-simulation",
   "private": true,
   "version": "1.0.0",
-  "description": "OI race simulation, a static single-file browser game.",
+  "description": "OI race simulation, a browser game with a React shell around a vanilla-JS engine.",
+  "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "wrangler dev",
+    "deploy": "vite build && wrangler deploy",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@storybook/react-vite": "^10.5.8",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "storybook": "^10.5.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
     "wrangler": "^4"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
   }
 }

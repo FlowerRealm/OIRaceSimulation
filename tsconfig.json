@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    // engine.js is the untouched original game code. Type-checking it would mean
+    // rewriting it, which is exactly what this port is avoiding.
+    "allowJs": false
+  },
+  "include": ["web/src", ".storybook"]
+}

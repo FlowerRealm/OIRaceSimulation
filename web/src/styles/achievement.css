@@ -1,0 +1,111 @@
+.achievement-popup {
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#fff;
+  border:3px solid #f9a825;
+  border-radius:12px;
+  padding:12px 18px;
+  box-shadow:0 8px 25px rgba(0,0,0,.3);
+  z-index:400;
+  font-size:.8rem;
+  font-weight:700;
+  color:#333;
+  animation:achPop .5s ease-out,achFade 4s forwards;
+  max-width:300px
+}
+
+.achievement-popup .ach-title {
+  font-size:.95rem;
+  color:#f57f17
+}
+
+.achievement-popup .ach-desc {
+  font-size:.7rem;
+  color:#666;
+  margin-top:4px
+}
+
+.achievement-popup .ach-score {
+  font-size:.8rem;
+  color:#4caf50;
+  margin-top:2px
+}
+
+@keyframes achPop {
+  0% {
+  transform:translateY(20px);
+  opacity:0
+  }
+  100% {
+  transform:translateY(0);
+  opacity:1
+  }
+}
+
+@keyframes achFade {
+  0% {
+  opacity:1
+  }
+  80% {
+  opacity:1
+  }
+  100% {
+  opacity:0
+  }
+}
+
+.achievement-modal {
+  max-width:700px;
+  width:95%
+}
+
+.achievement-list {
+  text-align:left;
+  max-height:60vh;
+  overflow-y:auto;
+  margin:10px 0
+}
+
+.achievement-item {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:6px 10px;
+  border-bottom:1px solid #eee;
+  font-size:.75rem
+}
+
+.achievement-item .ach-name {
+  font-weight:700
+}
+
+.achievement-item .ach-done {
+  color:#4caf50;
+  font-weight:700
+}
+
+.achievement-item .ach-none {
+  color:#aaa
+}
+
+.achievement-item .ach-player {
+  font-size:.65rem;
+  color:#666
+}
+
+.achievement-toggle-btn {
+  background:#ddd;
+  border:2px solid #bbb;
+  border-radius:20px;
+  padding:6px 16px;
+  font-weight:700;
+  cursor:pointer;
+  margin:0 5px
+}
+
+.achievement-toggle-btn.active {
+  background:#444;
+  color:#fff;
+  border-color:#333
+}

@@ -1,0 +1,32 @@
+.global-message {
+  width:100%;
+  padding:8px 14px;
+  border-radius:10px;
+  font-size:.78rem;
+  font-weight:600;
+  text-align:center;
+  min-height:20px;
+  transition:.3s;
+  color:#555;
+  background:#fafafa;
+  border:1px solid #e0e0e0;
+  margin-top:2px
+}
+
+.global-message.warning {
+  color:#8a6d14;
+  background:#fffcf0;
+  border-color:#e6a817
+}
+
+.global-message.success {
+  color:#3d6b30;
+  background:#e8f5e9;
+  border-color:#5a9a4b
+}
+
+.global-message.info {
+  color:#2b5f8a;
+  background:#e8f2fa;
+  border-color:#5b9bd5
+}

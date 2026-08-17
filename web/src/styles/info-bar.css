@@ -1,0 +1,96 @@
+.info-bar {
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  font-size:.8rem;
+  color:#777
+}
+
+.legend {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap
+}
+
+.legend-item {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-size:.73rem
+}
+
+.legend-dot {
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  border:1.5px solid #999;
+  background:#d0d0d0
+}
+
+.legend-dot.important {
+  background:#666;
+  border-color:#444
+}
+
+.legend-dot.result {
+  background:#888;
+  border-radius:2px;
+  border-color:#666
+}
+
+.legend-dot.skill-node {
+  background:#ccc;
+  border-radius:1px;
+  border:2px solid #999;
+  transform:rotate(45deg);
+  width:10px;
+  height:10px;
+  display:inline-block
+}
+
+.legend-dot.check-ring {
+  background:0 0;
+  border-radius:50%;
+  border:3px solid #444;
+  width:10px;
+  height:10px
+}
+
+.legend-dot.correct-box {
+  background:#555;
+  border-radius:2px;
+  border:2px solid #bbb;
+  width:10px;
+  height:10px
+}
+
+.legend-dot.broken {
+  background:#fff;
+  border-radius:50%;
+  border:1.5px dashed #999;
+  width:10px;
+  height:10px;
+  position:relative
+}
+
+.legend-dot.upgrade-node {
+  background:#fff;
+  border-radius:3px;
+  border:2px solid #f90;
+  width:10px;
+  height:10px;
+  display:inline-block
+}
+
+.correct-found-hint {
+  display:inline-block;
+  background:#e0e0e0;
+  color:#222;
+  padding:4px 10px;
+  border-radius:12px;
+  font-weight:600;
+  font-size:.75rem
+}
