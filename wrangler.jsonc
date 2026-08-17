@@ -20,10 +20,24 @@
   "routes": [
     { "pattern": "oi-game.revlm.com", "custom_domain": true }
   ],
+  "main": "./src/index.js",
   "assets": {
     // Only public/ is uploaded, so nothing outside it can ever be published.
-    "directory": "./public"
+    "directory": "./public",
+    // The Worker needs the binding to serve pages itself once it has decided a
+    // request is not for the API.
+    "binding": "ASSETS",
+    // Without this the asset router answers /api/* with the SPA 404 path before
+    // the Worker is ever invoked.
+    "run_worker_first": ["/api/*"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "oi-race-db",
+      "database_id": "79ac59b9-c8ea-47ac-865d-0e85e95f9145"
+    }
+  ],
   "observability": {
     "enabled": true
   }
