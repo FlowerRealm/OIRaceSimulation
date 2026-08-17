@@ -7,6 +7,7 @@ import { ChallengeOverlay } from './components/ChallengeOverlay';
 import { GameOverOverlay } from './components/GameOverOverlay';
 import { GlobalMessage } from './components/GlobalMessage';
 import { InfoBar } from './components/InfoBar';
+import { LeaderboardOverlay } from './components/LeaderboardOverlay';
 import { LevelBanner } from './components/LevelBanner';
 import { MapSelector } from './components/MapSelector';
 import { ScoreBar } from './components/ScoreBar';
@@ -47,6 +48,7 @@ export default function App() {
       <ShopOverlay />
       <GameOverOverlay />
       <AchievementOverlay />
+      <LeaderboardOverlay />
 
       <div className="challenge-tip-popup" id="challengeTipPopup" />
       <div

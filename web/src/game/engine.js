@@ -194,11 +194,21 @@ function getInferenceBaseReq(node,map){
 function applyTimeToSp(){if(!shop.timeToSp||ch.fun_I||ch.fun_II)return 0;const bonus=Math.floor(remTime/4);if(bonus>0){sp+=bonus;timeToSpBonusPending+=bonus;syncAllSp()}return bonus}
 function getFoodCost(key){const base={shriek:1,snickers:2,coffee:4};let cost=base[key]||0;if(level>=4)cost*=2;return cost}
 function forceResetSettling(){if(settling){settling=!1;if(settlingTimeout){clearTimeout(settlingTimeout);settlingTimeout=null}}}
+// A level's 用时 is wall-clock from the moment its maps were generated to the
+// moment it settled; the shop in between belongs to no level. Clamped to the
+// same ceiling the server enforces, so a laptop left asleep mid-contest costs
+// the player an accurate time rather than the whole level record.
+const MAX_LEVEL_DURATION_MS=6*60*60*1000;
+function levelElapsedMs(){if(!gameStartTime)return 0;return Math.min(MAX_LEVEL_DURATION_MS,Math.max(0,Date.now()-gameStartTime))}
 function recordScore(){
   if(!currentRunId||scoreRecordedForLevel===level)return;
   const histEntry=levelHistory.find(e=>e.level===level);
+  const durationMs=levelElapsedMs();
+  // Stamped onto the local history too, so the end-of-run table and the board
+  // are reading the same number rather than two independent measurements.
+  if(histEntry)histEntry.durationMs=durationMs;
   scoreRecordedForLevel=level;
-  api('/run/level',{runId:currentRunId,level,matchName:histEntry?histEntry.name:'',matchScore:histEntry?histEntry.totalScore:0,passed:histEntry?!!histEntry.passed:!1,sim:histEntry?!!histEntry.sim:!1,totalScore:totalHistScore})
+  api('/run/level',{runId:currentRunId,level,matchName:histEntry?histEntry.name:'',matchScore:histEntry?histEntry.totalScore:0,passed:histEntry?!!histEntry.passed:!1,sim:histEntry?!!histEntry.sim:!1,totalScore:totalHistScore,durationMs})
     .then(()=>refreshLeaderboard())
     .catch(()=>{scoreRecordedForLevel=null});
 }
@@ -384,17 +394,20 @@ function updateUI(){document.getElementById('levelName').textContent=cfgL(level)
 function updateScoreProg(){const ts=maps.reduce((s,m)=>s+(m.maxResultScore||0),0),mp=maps.length*100;const snEl=document.getElementById('scoreNumber');const prevTs=snEl._prevTs;if(prevTs!==undefined&&ts!==prevTs&&ts>prevTs){snEl.classList.add('tick');setTimeout(()=>snEl.classList.remove('tick'),200)}snEl._prevTs=ts;snEl.textContent=ts+'/'+mp;const newW=mp?Math.min(1,ts/mp)*100:0;document.getElementById('scoreBarInner').style.width=newW+'%';if(gameStartTime&&ts>=cfgL(level).pass+(ch.V?30:0)&&totalReachPassTime==null)totalReachPassTime=Date.now();checkAchievements()}
 function proceedNext(){if(!pendingNext)return;pendingNext=!1;level++;if(level>13){showFinal('🏆全部通关！','');return}focusStacks=0;focusMapIdx=-1;inferMode=!1;document.getElementById('canvasWrapper').classList.remove('inference');nodeAnimations={};updateUI();syncAllSp();startGame(level)}
 function updateEasyModeAfterGame(){hasPlayedBefore=true;if(everGotNOIMedal){easyMode=false;easyModeAutoSet=false}else{easyMode=true;easyModeAutoSet=true}saveEasySettings()}
-function showFinal(tit,txt){updateEasyModeAfterGame();if(currentRunId){api('/run/finish',{runId:currentRunId}).catch(()=>{});currentRunId=null}gameStarted=!1;stopChTimer();forceResetSettling();document.getElementById('modalTitle').textContent=tit;document.getElementById('modalText').innerHTML=txt;document.getElementById('modalScoreSummary').innerHTML='<strong>加权总分：'+totalHistScore+'</strong>';document.getElementById('modalHistory').innerHTML=buildHist();document.getElementById('gameOverOverlay').classList.remove('hidden')}
-function buildHist(){if(!levelHistory.length)return'';let h='<table class="history-table"><tr><th>级别</th><th>比赛</th><th>分数</th><th>系数</th><th>贡献</th><th>结果</th></tr>';levelHistory.forEach(e=>{const mult=e.multiplier||(e.sim?1:3);h+=`<tr><td>${e.level}</td><td>${e.name}</td><td>${e.totalScore}</td><td>×${mult}</td><td>${e.totalScore*mult}</td><td class="${e.passed?'pass':'fail'}">${e.passed?'✅通过':'❌未通过'}</td></tr>`});h+='</table>';return h}
+function showFinal(tit,txt){updateEasyModeAfterGame();if(currentRunId){api('/run/finish',{runId:currentRunId}).catch(()=>{});currentRunId=null}gameStarted=!1;stopChTimer();forceResetSettling();document.getElementById('modalTitle').textContent=tit;document.getElementById('modalText').innerHTML=txt;const totalDur=levelHistory.reduce((s,e)=>s+(e.durationMs||0),0);document.getElementById('modalScoreSummary').innerHTML='<strong>加权总分：'+totalHistScore+'</strong><span class="modal-total-time">总用时：'+fmtDur(totalDur)+'</span>';document.getElementById('modalHistory').innerHTML=buildHist();document.getElementById('gameOverOverlay').classList.remove('hidden')}
+function buildHist(){if(!levelHistory.length)return'';let h='<table class="history-table"><tr><th>级别</th><th>比赛</th><th>分数</th><th>系数</th><th>贡献</th><th>用时</th><th>结果</th></tr>';levelHistory.forEach(e=>{const mult=e.multiplier||(e.sim?1:3);h+=`<tr><td>${e.level}</td><td>${e.name}</td><td>${e.totalScore}</td><td>×${mult}</td><td>${e.totalScore*mult}</td><td>${fmtDur(e.durationMs)}</td><td class="${e.passed?'pass':'fail'}">${e.passed?'✅通过':'❌未通过'}</td></tr>`});h+='</table>';return h}
 function updateSidePanel(){const mindEl=document.getElementById('sideMindValue');if(mindEl){const em=getEffMind();mindEl.textContent=obf(em)}const fbEl=document.getElementById('sideFocusBonus');if(fbEl){if(focusStacks>0){fbEl.textContent='+'+focusStacks;fbEl.style.display='inline-block'}else{fbEl.style.display='none'}}updateFocusBtnDisplay()}
 function updateSideStocks(){document.getElementById('sideTimeStock').textContent=timeStock;document.getElementById('sideMindStock').textContent=mindStock;document.getElementById('sideBoostStock').textContent=boostStock;document.getElementById('sideInspireStock').textContent=inspireStock;const maxStock=Math.max(timeStock,mindStock,boostStock,inspireStock,1);document.getElementById('sideTimeStockBar').style.width=(timeStock/maxStock*100)+'%';document.getElementById('sideMindStockBar').style.width=(mindStock/maxStock*100)+'%';document.getElementById('sideBoostStockBar').style.width=(boostStock/maxStock*100)+'%';document.getElementById('sideInspireStockBar').style.width=(inspireStock/maxStock*100)+'%'}
 function updateActBar(){const b=document.getElementById('activeSkillsBar');let p=[];if(inferMode)p.push('<span class="active-skill-tag" style="color:#f90">按R退出推理</span>');if(timeBonus)p.push('<span class="active-skill-tag">⏰+'+timeBonus+'</span>');if(mindBonus)p.push('<span class="active-skill-tag">🧠+'+mindBonus+'</span>');if(boostLevel)p.push('<span class="active-skill-tag">💠×'+(1+boostLevel)+'</span>');if(inspireCount)p.push('<span class="active-skill-tag">⚡×'+inspireCount+'</span>');if(shop.moneyPower)p.push('<span class="active-skill-tag">💰就绪</span>');if(activeFoodTimeBonus)p.push('<span class="active-skill-tag">🍫时间+'+activeFoodTimeBonus+'</span>');if(activeFoodMindBonus)p.push('<span class="active-skill-tag">☕思维+'+activeFoodMindBonus+'</span>');if(ch.assist_I&&level>=4)p.push('<span class="active-skill-tag" style="background:#d6e8f7;color:#2b5f8a;">🛠️辅助I生效</span>');if(easyMode)p.push('<span class="active-skill-tag" style="background:#e8f5e9;color:#2e7d32;">🌱简单模式</span>');b.innerHTML=p.join(' ')}
 function updateShopPreview(){const nextMatchEl=document.getElementById('shopPreviewNextMatch');const personalEl=document.getElementById('shopPreviewPersonal');if(!nextMatchEl||!personalEl)return;let nextLv=level+1;if(nextLv>13){nextMatchEl.innerHTML='<span style="color:#888;">已是最终关卡</span>';}else{const ncfg=cfgL(nextLv);let nextBaseStam=ncfg.stam;const simpleStam=getSimpleStamina(nextLv);if(simpleStam!==null)nextBaseStam=simpleStam;let nextTime=nextBaseStam+timeBonus+activeFoodTimeBonus;if(shop.timeMaster)nextTime=Math.floor(nextTime*1.2);let nextStamina= (easyMode? Math.floor(nextTime*1.5) : (ch.II? Math.floor(nextTime): Math.floor(nextTime*1.2)));let foodStaminaBonus=0;pendingFoodEffects.forEach(fx=>{foodStaminaBonus+=fx.stamina});nextStamina+=foodStaminaBonus;nextMatchEl.innerHTML=`<div class="shop-preview-row"><span class="shop-preview-label">比赛名称</span><span class="shop-preview-value">${ncfg.name}</span></div><div class="shop-preview-row"><span class="shop-preview-label">初始时间</span><span class="shop-preview-value">${nextTime}</span></div><div class="shop-preview-row"><span class="shop-preview-label">精力上限</span><span class="shop-preview-value">${nextStamina}</span></div><div class="shop-preview-row"><span class="shop-preview-label">题目数</span><span class="shop-preview-value">${ncfg.maps}</span></div><div class="shop-preview-row"><span class="shop-preview-label">分数线</span><span class="shop-preview-value">${ncfg.pass + (ch.V?30:0)}</span></div>`;}const effMind=getEffMind();const skillReward=0.5+boostLevel;const inspireMult=inspireCount>0?inspireCount:0;personalEl.innerHTML=`<div class="shop-preview-row"><span class="shop-preview-label">🧠 思维</span><span class="shop-preview-value">${effMind}</span></div><div class="shop-preview-row"><span class="shop-preview-label">💎 特殊节点奖励</span><span class="shop-preview-value">${fsp(skillReward)} sp/个</span></div><div class="shop-preview-row"><span class="shop-preview-label">⚡ 振奋效果乘数</span><span class="shop-preview-value">${inspireMult>0?'×'+inspireMult:'未激活'}</span></div><div class="shop-preview-row"><span class="shop-preview-label">💠 提升等级</span><span class="shop-preview-value">Lv.${boostLevel}</span></div><div class="shop-preview-row"><span class="shop-preview-label">💰 钞能力</span><span class="shop-preview-value">${shop.moneyPower?(moneyPowerUsed?'已用':'可用'):'未解锁'}</span></div>`}
 // The board now ranks each player's best run ever, not their standing inside
 // whatever run happens to be open, so it is comparable across devices and days.
-let leaderboardCache=[];
-function refreshLeaderboard(){return api('/leaderboard').then(d=>{leaderboardCache=d.players||[];updateLeaderboardUI()}).catch(()=>{})}
+const MINI_SCORE_COUNT=6;
+let leaderboardCache=[],matchBoardCache=[];
+function refreshLeaderboard(){return api('/leaderboard').then(d=>{leaderboardCache=d.players||[];matchBoardCache=d.matches||[];updateLeaderboardUI();renderBoardPage()}).catch(()=>{})}
 function getLBColor(score){if(score<1500)return'#BFBFBF';if(score<2000)return'#0E90D2';if(score<4000)return'#5EB95E';if(score<8000)return'#E67E22';if(score<13000)return'#E74C3C';return'#8E44AD'}
+// 0 is the "never timed" case that predates the timer, not a zero-second run.
+function fmtDur(ms){if(!ms)return'—';const t=Math.round(ms/1000),s=t%60,m=Math.floor(t/60)%60,h=Math.floor(t/3600);const p=n=>String(n).padStart(2,'0');return h>0?`${h}:${p(m)}:${p(s)}`:`${m}:${p(s)}`}
 function updateLeaderboardUI(){
   const listEl=document.getElementById('leaderboardList');
   if(!listEl)return;
@@ -402,10 +415,88 @@ function updateLeaderboardUI(){
   listEl.innerHTML=leaderboardCache.map((p,i)=>{
     const color=getLBColor(p.score);
     const isMe=p.name===playerName;
-    const mini=(p.miniScores||[]).map(ms=>`<span class="mini-score ${ms.passed?'pass':'fail'}">${ms.matchScore}</span>`).join('');
-    return `<div class="leaderboard-item${isMe?' current':''}"><span class="leaderboard-rank">${i+1}</span><span class="leaderboard-name" style="color:${color}">${esc(p.name)}<span class="leaderboard-level">第${p.maxLevel+1}关</span>${p.easyMode?'<span class="leaderboard-easy">简单</span>':''}</span><span class="leaderboard-score">${p.score}</span>${mini?`<div class="leaderboard-mini-scores">${mini}</div>`:''}</div>`;
+    const mini=(p.levels||[]).slice(-MINI_SCORE_COUNT).map(ms=>`<span class="mini-score ${ms.passed?'pass':'fail'}">${ms.matchScore}</span>`).join('');
+    return `<div class="leaderboard-item${isMe?' current':''}"><span class="leaderboard-rank">${i+1}</span><span class="leaderboard-name" style="color:${color}">${esc(p.name)}<span class="leaderboard-level">第${p.maxLevel+1}关</span>${p.easyMode?'<span class="leaderboard-easy">简单</span>':''}</span><span class="leaderboard-score">${p.score}</span><span class="leaderboard-time">${fmtDur(p.durationMs)}</span>${mini?`<div class="leaderboard-mini-scores">${mini}</div>`:''}</div>`;
   }).join('');
 }
+/**
+ * The board the player opens from the start screen is a tab strip: 总榜 first,
+ * then one tab per level's 单场榜.
+ *
+ * There is exactly one piece of state — which tab — and one render that draws
+ * both the strip and the board under it.
+ */
+let boardPage=0;
+function boardPageCount(){return 1+matchBoardCache.length}
+function levelName(b){return (LV[b.level]&&LV[b.level].name)||b.matchName||('第'+(b.level+1)+'关')}
+// 总榜: each player's best run ever, expandable into that run's own matches.
+function totalBoardHtml(){
+  if(leaderboardCache.length===0)return'<div class="lb-empty">暂无记录</div>';
+  const head='<div class="lb-head"><span class="lb-rank">#</span><span class="lb-name">玩家</span><span class="lb-score">加权总分</span><span class="lb-time">总用时</span></div>';
+  return head+leaderboardCache.map((p,i)=>{
+    const color=getLBColor(p.score);
+    const isMe=p.name===playerName;
+    const rows=(p.levels||[]).map(l=>`<tr><td>${l.level+1}</td><td>${esc(l.matchName||'')}${l.sim?'<span class="lb-sim">模拟</span>':''}</td><td>${l.matchScore}</td><td>${fmtDur(l.durationMs)}</td><td class="${l.passed?'pass':'fail'}">${l.passed?'✅':'❌'}</td></tr>`).join('');
+    const detail=rows
+      ?`<table class="lb-detail"><tr><th>关卡</th><th>比赛</th><th>分数</th><th>用时</th><th>结果</th></tr>${rows}</table>`
+      :'<div class="lb-empty">这局还没有比赛记录</div>';
+    return `<details class="lb-entry${isMe?' current':''}"><summary class="lb-row"><span class="lb-rank">${i+1}</span><span class="lb-name" style="color:${color}">${esc(p.name)}<span class="leaderboard-level">第${p.maxLevel+1}关</span>${p.easyMode?'<span class="leaderboard-easy">简单</span>':''}</span><span class="lb-score">${p.score}</span><span class="lb-time">${fmtDur(p.durationMs)}</span></summary>${detail}</details>`;
+  }).join('');
+}
+// 单场榜: one level, each player's best-ever attempt at it. Flat rows — there is
+// nothing left to expand once a row is already a single match.
+function matchBoardHtml(b){
+  if(!b.rows.length)return'<div class="lb-empty">暂无记录</div>';
+  const head='<div class="lb-head"><span class="lb-rank">#</span><span class="lb-name">玩家</span><span class="lb-score">分数</span><span class="lb-time">用时</span><span class="lb-flag">结果</span></div>';
+  return head+b.rows.map((r,i)=>{
+    const isMe=r.name===playerName;
+    return `<div class="lb-entry lb-flat${isMe?' current':''}"><div class="lb-row"><span class="lb-rank">${i+1}</span><span class="lb-name">${esc(r.name)}</span><span class="lb-score">${r.matchScore}</span><span class="lb-time">${fmtDur(r.durationMs)}</span><span class="lb-flag ${r.passed?'pass':'fail'}">${r.passed?'✅':'❌'}</span></div></div>`;
+  }).join('');
+}
+function renderBoardPage(){
+  const listEl=document.getElementById('leaderboardBoard');
+  if(!listEl)return;
+  boardPage=Math.max(0,Math.min(boardPage,boardPageCount()-1));
+  const onTotal=boardPage===0;
+  const b=onTotal?null:matchBoardCache[boardPage-1];
+
+  const tabs=['总榜'].concat(matchBoardCache.map(levelName));
+  const tabsEl=document.getElementById('lbTabs');
+  tabsEl.innerHTML=tabs.map((t,i)=>`<button class="lb-tab${i===boardPage?' active':''}" data-page="${i}">${esc(t)}</button>`).join('');
+  // Keep the selected tab visible: with fourteen levels the strip scrolls, and a
+  // tab selected by keyboard can otherwise sit off-screen.
+  const active=tabsEl.querySelector('.lb-tab.active');
+  if(active)active.scrollIntoView({block:'nearest',inline:'nearest'});
+
+  document.getElementById('lbPageNote').textContent=onTotal
+    ?'每位玩家的最佳一局，点击一行展开这局每场比赛的分数与用时。'
+    :'本关的单场排名，取每位玩家在该关的历史最佳一场。';
+  listEl.innerHTML=onTotal?totalBoardHtml():matchBoardHtml(b);
+  listEl.scrollTop=0;
+}
+function goBoardPage(delta){boardPage+=delta;renderBoardPage()}
+// Opening always lands on 总榜; the page you left on last time is not a place
+// anyone wants to be put back into without asking.
+function showLeaderboardModal(){boardPage=0;renderBoardPage();document.getElementById('leaderboardOverlay').classList.remove('hidden');refreshLeaderboard()}
+function leaderboardIsOpen(){return !document.getElementById('leaderboardOverlay').classList.contains('hidden')}
+document.getElementById('btnOpenLeaderboard').addEventListener('click',showLeaderboardModal);
+document.getElementById('btnCloseLeaderboard').addEventListener('click',()=>document.getElementById('leaderboardOverlay').classList.add('hidden'));
+// Delegated, because the strip is rebuilt on every render and per-button
+// listeners would have to be rebuilt with it.
+document.getElementById('lbTabs').addEventListener('click',e=>{
+  const tab=e.target.closest('.lb-tab');
+  if(!tab)return;
+  boardPage=+tab.dataset.page;
+  renderBoardPage();
+});
+// Arrow keys walk the tabs. Guarded on the overlay being open so they do not
+// fight the game's own keys.
+document.addEventListener('keydown',e=>{
+  if(!leaderboardIsOpen())return;
+  if(e.key==='ArrowLeft'){e.preventDefault();goBoardPage(-1)}
+  else if(e.key==='ArrowRight'){e.preventDefault();goBoardPage(1)}
+  else if(e.key==='Escape'){document.getElementById('leaderboardOverlay').classList.add('hidden')}
+});
 function initShopPanel(){const cont=document.getElementById('shopLeftContent');syncAllSp();let html='';
 const isProvinceOrLater=level>=4;
 const priceHike=(ch.VI&&hasPassedNOIP())?1:0;

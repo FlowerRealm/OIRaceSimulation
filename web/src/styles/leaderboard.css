@@ -60,6 +60,14 @@
   font-weight:700
 }
 
+.leaderboard-time {
+  min-width:44px;
+  text-align:right;
+  font-size:.62rem;
+  color:#888;
+  font-variant-numeric:tabular-nums
+}
+
 .leaderboard-mini-scores {
   width:100%;
   text-align:right;
@@ -82,3 +90,241 @@
 .leaderboard-mini-scores .mini-score.fail {
   color:#b84c3b
 }
+
+/* --- full board, opened from the start screen ------------------------ */
+
+.leaderboard-modal {
+  max-width:760px;
+  width:95%
+}
+
+.leaderboard-full-list {
+  text-align:left;
+  max-height:60vh;
+  overflow-y:auto;
+  margin:4px 0 10px
+}
+
+.lb-head,.lb-row {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px
+}
+
+.lb-head {
+  font-size:.68rem;
+  color:#888;
+  font-weight:700;
+  border-bottom:2px solid #e0e0e0;
+  position:sticky;
+  top:0;
+  background:#fff;
+  z-index:1
+}
+
+/* Stands in for the ▸/▾ marker an expandable row carries, so both kinds of page
+   line their columns up against the same header. */
+.lb-head::before,.lb-flat .lb-row::before {
+  content:'';
+  width:9px;
+  flex:none
+}
+
+.lb-rank {
+  width:28px;
+  text-align:center;
+  font-weight:700;
+  flex:none
+}
+
+.lb-name {
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-weight:700
+}
+
+.lb-score,.lb-time {
+  width:76px;
+  text-align:right;
+  font-weight:700;
+  flex:none;
+  font-variant-numeric:tabular-nums
+}
+
+.lb-time {
+  color:#777
+}
+
+.lb-entry {
+  border-radius:8px;
+  background:#fafafa;
+  margin:3px 0;
+  font-size:.78rem
+}
+
+.lb-entry.current {
+  background:#fff8e1;
+  outline:2px solid #e6c34a
+}
+
+.lb-entry > summary {
+  cursor:pointer;
+  list-style:none
+}
+
+.lb-entry > summary::-webkit-details-marker {
+  display:none
+}
+
+.lb-entry > summary::before {
+  content:'▸';
+  color:#aaa;
+  font-size:.7rem;
+  flex:none
+}
+
+.lb-entry[open] > summary::before {
+  content:'▾'
+}
+
+.lb-entry > summary:hover {
+  background:#f0f0f0;
+  border-radius:8px
+}
+
+.lb-detail {
+  width:100%;
+  border-collapse:collapse;
+  font-size:.7rem;
+  margin:0 0 6px;
+  padding:0 10px
+}
+
+.lb-detail th,.lb-detail td {
+  padding:4px 8px;
+  border-bottom:1px solid #ececec;
+  text-align:center
+}
+
+.lb-detail th {
+  color:#888;
+  font-weight:700
+}
+
+.lb-detail .pass {
+  color:#4a7c59
+}
+
+.lb-detail .fail {
+  color:#b84c3b
+}
+
+.lb-sim {
+  font-size:.58rem;
+  color:#888;
+  border:1px solid #ddd;
+  border-radius:5px;
+  padding:0 3px;
+  margin-left:4px
+}
+
+.lb-empty {
+  color:#999;
+  font-size:.72rem;
+  text-align:center;
+  padding:10px
+}
+
+.modal-total-time {
+  display:block;
+  font-size:.8rem;
+  color:#777;
+  margin-top:4px;
+  font-variant-numeric:tabular-nums
+}
+
+/* One tab per board. Fourteen levels never fit, so the strip scrolls sideways
+   rather than wrapping into a wall of buttons.
+   The scrollbar is styled to always show: macOS hides overlay scrollbars until
+   something scrolls, which leaves the clipped right-hand tabs looking like they
+   simply do not exist. */
+.lb-tabs {
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:2px 0 8px;
+  margin-top:4px
+  /* Deliberately no `scrollbar-width`/`scrollbar-color`: setting either makes
+     Chrome ignore the ::-webkit-scrollbar rules below and fall back to the
+     hidden overlay scrollbar, which is the thing being fixed here. */
+}
+
+.lb-tabs::-webkit-scrollbar {
+  height:9px
+}
+
+.lb-tabs::-webkit-scrollbar-track {
+  background:#f0f0f0;
+  border-radius:5px
+}
+
+.lb-tabs::-webkit-scrollbar-thumb {
+  background:#c0c0c0;
+  border-radius:5px;
+  border:2px solid #f0f0f0
+}
+
+.lb-tabs::-webkit-scrollbar-thumb:hover {
+  background:#9a9a9a
+}
+
+.lb-tab {
+  flex:none;
+  background:#f5f5f5;
+  color:#666;
+  border:2px solid #e0e0e0;
+  border-radius:16px;
+  padding:5px 12px;
+  font-size:.72rem;
+  font-weight:600;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:.15s
+}
+
+.lb-tab:hover {
+  background:#ececec;
+  color:#333
+}
+
+.lb-tab.active {
+  background:#555;
+  border-color:#555;
+  color:#fff
+}
+
+/* A single match is already the smallest unit on the board, so its rows do not
+   expand — no marker, no pointer, no hover lift. */
+.lb-flat .lb-row {
+  cursor:default
+}
+
+.lb-flag {
+  width:36px;
+  text-align:center;
+  flex:none;
+  font-size:.72rem
+}
+
+.lb-note {
+  font-size:.68rem;
+  color:#999;
+  text-align:center;
+  margin-bottom:6px
+}
+

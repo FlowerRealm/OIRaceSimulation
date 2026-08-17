@@ -43,6 +43,13 @@ CREATE TABLE IF NOT EXISTS runs (
   challenges  TEXT    NOT NULL DEFAULT '{}',
   max_level   INTEGER NOT NULL DEFAULT 0,
   total_score INTEGER NOT NULL DEFAULT 0,
+  -- Sum of the per-level durations below. Recomputed from run_levels on every
+  -- write rather than incremented, for the same reason total_score is: a level
+  -- can be re-recorded, and an accumulator would double-count it.
+  --
+  -- 0 means "not measured" — runs that predate the timer. The leaderboard sorts
+  -- those last instead of letting a missing time win the tiebreak.
+  total_duration_ms INTEGER NOT NULL DEFAULT 0,
   finished    INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_runs_user ON runs(user_id);
@@ -56,6 +63,9 @@ CREATE TABLE IF NOT EXISTS run_levels (
   passed      INTEGER NOT NULL DEFAULT 0,
   sim         INTEGER NOT NULL DEFAULT 0,
   total_score INTEGER NOT NULL DEFAULT 0,
+  -- Wall-clock milliseconds from the moment the level's maps were generated to
+  -- the moment it settled. The shop between levels is not part of it.
+  duration_ms INTEGER NOT NULL DEFAULT 0,
   recorded_at INTEGER NOT NULL,
   PRIMARY KEY (run_id, level)
 );

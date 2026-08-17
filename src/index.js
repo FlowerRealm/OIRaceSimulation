@@ -22,7 +22,12 @@ const MAX_MATCH_SCORE = 2000;
 // achievement bonuses. 100000 leaves generous headroom over anything reachable.
 const MAX_TOTAL_SCORE = 100000;
 const LEADERBOARD_LIMIT = 50;
-const MINI_SCORE_COUNT = 6;
+// The per-level boards ship fourteen lists in one response, so they are kept
+// short: a top ten per level is what anyone actually reads.
+const MATCH_BOARD_LIMIT = 10;
+// Six hours on a single level is already absurd; anything past it is a forged
+// or a broken clock, and letting it through would poison the run's total.
+const MAX_LEVEL_DURATION_MS = 6 * 60 * 60 * 1000;
 
 const MODES = ['simple', 'normal'];
 
@@ -180,11 +185,26 @@ async function userPayload(env, user) {
 
 /* ------------------------------------------------------------ leaderboard */
 
+// The one ranking rule, shared by both boards: score first, elapsed time second.
+// A duration of 0 is the "never timed" case (runs older than the timer) and the
+// comparison evaluates to 1, so those sort behind every timed entry instead of
+// winning the tiebreak with a time nobody actually ran.
+//
+// Both boards build their ORDER BY from this, because two boards that disagreed
+// about how to break a tie would be a bug nobody notices until it matters.
+function scoreThenTime(score, duration) {
+  return `${score} DESC, (${duration} = 0) ASC, ${duration} ASC`;
+}
+
+const LEADERBOARD_ORDER = `${scoreThenTime('r.total_score', 'r.total_duration_ms')}, r.max_level DESC, r.updated_at ASC`;
+
+/** 总榜: one row per player, their best run ever. */
 async function leaderboard(env) {
   const best = await env.DB.prepare(
-    `SELECT u.username, r.id AS run_id, r.total_score, r.max_level, r.easy_mode, r.finished
+    `SELECT u.username, r.id AS run_id, r.total_score, r.total_duration_ms,
+            r.max_level, r.easy_mode, r.finished
        FROM users u JOIN runs r ON r.id = u.best_run_id
-      ORDER BY r.total_score DESC, r.max_level DESC, r.updated_at ASC
+      ORDER BY ${LEADERBOARD_ORDER}
       LIMIT ?1`
   )
     .bind(LEADERBOARD_LIMIT)
@@ -197,7 +217,7 @@ async function leaderboard(env) {
   // alternative — a query per row — is 50 round trips to say the same thing.
   const placeholders = rows.map((_, i) => `?${i + 1}`).join(',');
   const levels = await env.DB.prepare(
-    `SELECT run_id, level, match_score, passed
+    `SELECT run_id, level, match_name, match_score, passed, sim, duration_ms
        FROM run_levels WHERE run_id IN (${placeholders})
       ORDER BY run_id, level`
   )
@@ -207,17 +227,75 @@ async function leaderboard(env) {
   const byRun = new Map();
   for (const row of levels.results) {
     if (!byRun.has(row.run_id)) byRun.set(row.run_id, []);
-    byRun.get(row.run_id).push({ matchScore: row.match_score, passed: !!row.passed });
+    byRun.get(row.run_id).push({
+      level: row.level,
+      matchName: row.match_name,
+      matchScore: row.match_score,
+      passed: !!row.passed,
+      sim: !!row.sim,
+      durationMs: row.duration_ms,
+    });
   }
 
+  // The full per-level list goes out once and both views read it: the shop panel
+  // shows the tail of it, the leaderboard modal shows all of it. Shipping a
+  // pre-sliced `miniScores` as well would be two shapes of the same data.
   return rows.map((r) => ({
     name: r.username,
     score: r.total_score,
+    durationMs: r.total_duration_ms,
     maxLevel: r.max_level,
     easyMode: !!r.easy_mode,
     finished: !!r.finished,
-    miniScores: (byRun.get(r.run_id) || []).slice(-MINI_SCORE_COUNT),
+    levels: byRun.get(r.run_id) || [],
   }));
+}
+
+/**
+ * 单场榜: one board per level, ranking each player's best-ever attempt at it.
+ *
+ * A player's own attempts are collapsed first (own_rank), so someone who played
+ * CSP-S twenty times occupies one slot rather than the whole board. Every level
+ * is ranked in the same query — the alternative is fourteen round trips to
+ * compute fourteen slices of the same table.
+ */
+async function matchBoards(env) {
+  const res = await env.DB.prepare(
+    `WITH per_user AS (
+       SELECT l.level, r.user_id, l.match_name, l.match_score, l.passed, l.sim, l.duration_ms,
+              ROW_NUMBER() OVER (PARTITION BY l.level, r.user_id
+                                 ORDER BY ${scoreThenTime('l.match_score', 'l.duration_ms')}) AS own_rank
+         FROM run_levels l JOIN runs r ON r.id = l.run_id
+     ),
+     ranked AS (
+       SELECT p.*, ROW_NUMBER() OVER (PARTITION BY p.level
+                                      ORDER BY ${scoreThenTime('p.match_score', 'p.duration_ms')}) AS pos
+         FROM per_user p WHERE p.own_rank = 1
+     )
+     SELECT k.level, k.match_name, k.match_score, k.passed, k.sim, k.duration_ms, u.username
+       FROM ranked k JOIN users u ON u.id = k.user_id
+      WHERE k.pos <= ?1
+      ORDER BY k.level, k.pos`
+  )
+    .bind(MATCH_BOARD_LIMIT)
+    .all();
+
+  const byLevel = new Map();
+  for (const row of res.results) {
+    if (!byLevel.has(row.level)) {
+      // The name comes off the top row; every row of a level carries the same
+      // one, and the client falls back to its own level table when it is blank.
+      byLevel.set(row.level, { level: row.level, matchName: row.match_name, rows: [] });
+    }
+    byLevel.get(row.level).rows.push({
+      name: row.username,
+      matchScore: row.match_score,
+      durationMs: row.duration_ms,
+      passed: !!row.passed,
+      sim: !!row.sim,
+    });
+  }
+  return [...byLevel.values()];
 }
 
 /* --------------------------------------------------------------- handlers */
@@ -323,9 +401,11 @@ async function handleRunLevel(request, env, user) {
   const level = Math.trunc(Number(body.level ?? -1));
   const matchScore = Math.trunc(Number(body.matchScore ?? 0));
   const totalScore = Math.trunc(Number(body.totalScore ?? 0));
+  const durationMs = Math.trunc(Number(body.durationMs ?? 0));
   if (!(level >= 0 && level <= MAX_LEVEL)) return fail('关卡非法', 400);
   if (!(matchScore >= 0 && matchScore <= MAX_MATCH_SCORE)) return fail('单场分数非法', 400);
   if (!(totalScore >= 0 && totalScore <= MAX_TOTAL_SCORE)) return fail('总分非法', 400);
+  if (!(durationMs >= 0 && durationMs <= MAX_LEVEL_DURATION_MS)) return fail('用时非法', 400);
   // Levels arrive in order or not at all. Re-recording the current level is
   // allowed (the client does that when a score is corrected); jumping ahead is
   // not, which is what a replayed or forged request would have to do.
@@ -334,12 +414,13 @@ async function handleRunLevel(request, env, user) {
   const now = Date.now();
   await env.DB.batch([
     env.DB.prepare(
-      `INSERT INTO run_levels (run_id, level, match_name, match_score, passed, sim, total_score, recorded_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+      `INSERT INTO run_levels (run_id, level, match_name, match_score, passed, sim, total_score, duration_ms, recorded_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
        ON CONFLICT(run_id, level) DO UPDATE SET
          match_name = excluded.match_name, match_score = excluded.match_score,
          passed = excluded.passed, sim = excluded.sim,
-         total_score = excluded.total_score, recorded_at = excluded.recorded_at`
+         total_score = excluded.total_score, duration_ms = excluded.duration_ms,
+         recorded_at = excluded.recorded_at`
     ).bind(
       run.id,
       level,
@@ -348,19 +429,27 @@ async function handleRunLevel(request, env, user) {
       body.passed ? 1 : 0,
       body.sim ? 1 : 0,
       totalScore,
+      durationMs,
       now
     ),
+    // The batch is one transaction and runs in order, so the SUM below already
+    // sees the row written above — including the re-recorded case, where an
+    // accumulator would have added the same level's time twice.
     env.DB.prepare(
-      `UPDATE runs SET total_score = ?2, max_level = MAX(max_level, ?3), updated_at = ?4
+      `UPDATE runs SET total_score = ?2, max_level = MAX(max_level, ?3), updated_at = ?4,
+              total_duration_ms = (SELECT COALESCE(SUM(duration_ms), 0) FROM run_levels WHERE run_id = ?1)
         WHERE id = ?1`
     ).bind(run.id, totalScore, level, now),
     // Recomputed rather than compared-and-raised, because the client can also
     // lower a run's score (the anti-cheat key zeroes it) and a high-water mark
-    // would happily keep pointing at a total that no longer exists.
+    // would happily keep pointing at a total that no longer exists. The order
+    // matches the leaderboard's, so a player's own board position is the one
+    // their best run would get.
     env.DB.prepare(
       `UPDATE users SET best_run_id = (
          SELECT id FROM runs WHERE user_id = ?1
-          ORDER BY total_score DESC, max_level DESC, id ASC LIMIT 1
+          ORDER BY ${scoreThenTime('total_score', 'total_duration_ms')}, max_level DESC, id ASC
+          LIMIT 1
        ) WHERE id = ?1`
     ).bind(user.id),
   ]);
@@ -435,7 +524,13 @@ const ROUTES = {
   'POST /api/register': { auth: false, run: (req, env) => handleRegister(req, env) },
   'POST /api/login': { auth: false, run: (req, env) => handleLogin(req, env) },
   'POST /api/logout': { auth: false, run: (req, env) => handleLogout(req, env) },
-  'GET /api/leaderboard': { auth: false, run: async (req, env) => json({ players: await leaderboard(env) }) },
+  'GET /api/leaderboard': {
+    auth: false,
+    run: async (req, env) => {
+      const [players, matches] = await Promise.all([leaderboard(env), matchBoards(env)]);
+      return json({ players, matches });
+    },
+  },
   'GET /api/me': { auth: true, run: async (req, env, user) => json(await userPayload(env, user)) },
   'POST /api/settings': { auth: true, run: handleSettings },
   'POST /api/run/start': { auth: true, run: handleRunStart },

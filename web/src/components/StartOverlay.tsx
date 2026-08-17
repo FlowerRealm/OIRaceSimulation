@@ -59,6 +59,9 @@ export function StartOverlay({
       <button className="btn-challenge-open" id="btnOpenAchievements">
         🏅成就
       </button>
+      <button className="btn-challenge-open" id="btnOpenLeaderboard">
+        🏆排行榜
+      </button>
       <div className="challenge-section">
         <div className="challenge-summary-row" id="challengeSummaryRow">
           {challengeSummary}
