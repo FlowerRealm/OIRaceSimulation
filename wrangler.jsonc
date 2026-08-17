@@ -1,0 +1,20 @@
+{
+  "name": "oi-race-simulation",
+  "compatibility_date": "2026-08-17",
+  // Keep the workers.dev URL alive as a fallback and debugging entry point.
+  "workers_dev": true,
+  // Served straight off Cloudflare's edge. Routing this through the saas.sin.fan
+  // optimized-IP edge is not possible: a SaaS edge has to pull from a routable
+  // origin IP, and a Worker only exists behind Cloudflare's own anycast, which
+  // Cloudflare will not connect back to. That path returns a permanent 522.
+  "routes": [
+    { "pattern": "game.revlm.com", "custom_domain": true }
+  ],
+  "assets": {
+    // Only public/ is uploaded, so nothing outside it can ever be published.
+    "directory": "./public"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
