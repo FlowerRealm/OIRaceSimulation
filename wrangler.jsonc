@@ -7,8 +7,18 @@
   // optimized-IP edge is not possible: a SaaS edge has to pull from a routable
   // origin IP, and a Worker only exists behind Cloudflare's own anycast, which
   // Cloudflare will not connect back to. That path returns a permanent 522.
+  //
+  // The hostname deliberately avoids game.revlm.com. The SaaS certificate that
+  // saas.sin.fan serves for the revlm.com apex carries the SAN set
+  // "revlm.com, game.revlm.com, *.game.revlm.com" on a restricted BYOIP edge
+  // (162.159.36.0/24). Browsers coalesce an existing HTTP/2 connection to the
+  // apex onto any hostname that certificate covers, so requests for
+  // game.revlm.com landed on an edge IP this zone is not authorised to use and
+  // Cloudflare answered "Error 1034 Edge IP Restricted". oi-game.revlm.com is
+  // outside that SAN set (the wildcard only matches *.game.revlm.com), so no
+  // coalescing happens.
   "routes": [
-    { "pattern": "game.revlm.com", "custom_domain": true }
+    { "pattern": "oi-game.revlm.com", "custom_domain": true }
   ],
   "assets": {
     // Only public/ is uploaded, so nothing outside it can ever be published.
