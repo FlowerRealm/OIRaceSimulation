@@ -32,14 +32,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
-
-      # The lockfile is produced by npm 11 locally (lockfileVersion 3 with the
-      # newer format). Node 20 ships npm 10, whose `npm ci` rejects it. Pin
-      # npm to 11 so CI matches the environment the lockfile was generated in.
-      - name: Upgrade npm
-        run: npm install -g npm@11
 
       - name: Install
         run: npm ci
