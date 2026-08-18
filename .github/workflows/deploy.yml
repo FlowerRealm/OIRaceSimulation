@@ -45,10 +45,12 @@ jobs:
         run: npm run build
 
       - name: Apply D1 migrations
-        # Every .sql file under migrations/, in filename order. They are
-        # authored to be idempotent (CREATE TABLE IF NOT EXISTS,
-        # ALTER TABLE ... DEFAULT), so re-running on an already-migrated
-        # database is a no-op rather than a failure.
+        # Every .sql file under migrations/, in filename order. Each file must
+        # be idempotent (CREATE TABLE IF NOT EXISTS, etc.) so re-running on an
+        # already-migrated database is a no-op rather than a failure. Avoid
+        # ALTER TABLE ADD COLUMN here — it errors on re-run because the column
+        # already exists; fold new columns straight into the CREATE TABLE in
+        # the relevant migration file instead.
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
