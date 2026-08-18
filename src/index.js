@@ -6,28 +6,19 @@
  *
  * A note on trust: the game itself runs entirely in the browser, so a
  * determined player can post whatever score they like. Moving the simulation
- * server-side is the only real fix and that is not what this change is. What
- * the handlers below do is reject scores that are impossible rather than merely
- * improbable — out-of-range levels, skipped levels, absurd totals. That stops
- * casual tampering and nothing more. Do not treat the leaderboard as proof.
+ * server-side is the only real fix and that is not what this change is.
+ * Scores posted here are stored as-is, unvalidated. Do not treat the
+ * leaderboard as proof.
  */
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const COOKIE_NAME = 'oi_session';
 const PBKDF2_ITERATIONS = 100000;
 
-const MAX_LEVEL = 13;
-const MAX_MATCH_SCORE = 2000;
-// A perfect run is roughly 14 levels x 1600 points x the 3x multiplier, plus
-// achievement bonuses. 100000 leaves generous headroom over anything reachable.
-const MAX_TOTAL_SCORE = 100000;
 const LEADERBOARD_LIMIT = 50;
 // The per-level boards ship fourteen lists in one response, so they are kept
 // short: a top ten per level is what anyone actually reads.
 const MATCH_BOARD_LIMIT = 10;
-// Six hours on a single level is already absurd; anything past it is a forged
-// or a broken clock, and letting it through would poison the run's total.
-const MAX_LEVEL_DURATION_MS = 6 * 60 * 60 * 1000;
 
 const MODES = ['simple', 'normal'];
 
@@ -396,20 +387,10 @@ async function handleRunLevel(request, env, user) {
   if (!run) return fail('对局不存在', 404);
   if (run.finished) return fail('对局已结束', 409);
 
-  // Out-of-range values are rejected outright rather than clamped: clamping a
-  // forged score to the ceiling would hand the forger the ceiling.
   const level = Math.trunc(Number(body.level ?? -1));
   const matchScore = Math.trunc(Number(body.matchScore ?? 0));
   const totalScore = Math.trunc(Number(body.totalScore ?? 0));
   const durationMs = Math.trunc(Number(body.durationMs ?? 0));
-  if (!(level >= 0 && level <= MAX_LEVEL)) return fail('关卡非法', 400);
-  if (!(matchScore >= 0 && matchScore <= MAX_MATCH_SCORE)) return fail('单场分数非法', 400);
-  if (!(totalScore >= 0 && totalScore <= MAX_TOTAL_SCORE)) return fail('总分非法', 400);
-  if (!(durationMs >= 0 && durationMs <= MAX_LEVEL_DURATION_MS)) return fail('用时非法', 400);
-  // Levels arrive in order or not at all. Re-recording the current level is
-  // allowed (the client does that when a score is corrected); jumping ahead is
-  // not, which is what a replayed or forged request would have to do.
-  if (level > run.max_level + 1) return fail('关卡顺序非法', 400);
 
   const now = Date.now();
   await env.DB.batch([
