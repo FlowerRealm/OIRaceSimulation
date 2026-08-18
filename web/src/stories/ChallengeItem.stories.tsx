@@ -38,7 +38,7 @@ export const ExpLocked: Story = {
   args: {
     kind: 'exp',
     name: '⚡I EXP：落后资源',
-    desc: '时间结构仅+2.5时间',
+    desc: '时间结构仅+1.5时间',
     expTip: '💡 EXP 挑战需要开启所有同级挑战后解锁',
   },
 };

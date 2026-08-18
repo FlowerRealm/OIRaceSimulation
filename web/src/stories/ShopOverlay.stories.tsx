@@ -33,7 +33,7 @@ export const Stocked: Story = {
           <div className="stock-item">
             <span className="stock-item-name">⏰ 时间</span>
             <span className="stock-item-count">×3</span>
-            <span className="stock-item-cost">下一关 +2.5 时间</span>
+            <span className="stock-item-cost">下一关 +1.5 时间</span>
             <button className="btn-stock-buy">4sp购买</button>
           </div>
           <div className="stock-item">

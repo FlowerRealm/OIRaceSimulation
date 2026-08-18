@@ -56,7 +56,7 @@ export const CHALLENGE_GROUPS: ChallengeGroupDef[] = [
       },
       { key: 'II', kind: 'normal', tier: 1, name: 'II级：无精打采', desc: '精力=时间×1' },
       { key: 'III', kind: 'normal', tier: 1, name: 'III级：痴呆症', desc: '每过正式赛思维-1' },
-      { key: 'I_exp', kind: 'exp', name: '⚡I EXP：落后资源', desc: '时间结构仅+2.5时间', expTip: EXP_TIP },
+      { key: 'I_exp', kind: 'exp', name: '⚡I EXP：落后资源', desc: '时间结构仅+1.5时间', expTip: EXP_TIP },
     ],
   },
   {
