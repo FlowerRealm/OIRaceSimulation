@@ -536,7 +536,7 @@ let shakeRaf=null;
 function startShake(){if(shakeRaf)return;shakeRaf=requestAnimationFrame(function loop(){if(!inferMode&&!document.querySelector('.shake-node')){shakeRaf=null;return}drawTree(getActive());shakeRaf=requestAnimationFrame(loop)})}
 window.addEventListener('keydown',e=>{
 if(e.key==='F8'){e.preventDefault();if(gameStarted&&maps.some(m=>!m.gameOver)){maps.forEach(m=>{if(!m.gameOver){m.correctResult.state='correct';m.correctResult.score=100;let cur=m.correctResult.parent;while(cur){cur.state='correct';cur=cur.parent}endMapGame(m,'win')}});checkAllComplete()}return}
-if(e.key==='F4'){e.preventDefault();alert('禁止作弊！你的总分已归零。');totalHistScore=0;recordScore();setGM('总分已归零','warning')}
+if(e.key==='F12'){e.preventDefault();alert('禁止作弊！你的总分已归零。');totalHistScore=0;recordScore();setGM('总分已归零','warning')}
 });
 document.addEventListener('keydown',e=>{
 if(e.key==='r'||e.key==='R'){if(!gameStarted)return;if(document.getElementById('gameOverOverlay').classList.contains('hidden')&&document.getElementById('shopOverlay').classList.contains('hidden')){const hasInferAccess=shop.inference||(ch.assist_I&&level>=4);if(!hasInferAccess||level<4){setGM('🔒推理功能需通过NOIP后解锁','warning');return}inferMode=!inferMode;document.getElementById('canvasWrapper').classList.toggle('inference',inferMode);updateActBar();if(!inferMode){clearAllShake()}refreshUI()}}
